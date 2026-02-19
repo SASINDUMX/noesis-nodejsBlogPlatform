@@ -1,0 +1,435 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+    /* Base HSL Values */
+    --primary-h: 230;
+    --primary-s: 85%;
+    --primary-l: 60%;
+
+    --secondary-h: 15;
+    --secondary-s: 95%;
+    --secondary-l: 60%;
+
+    --accent-h: 280;
+    --accent-s: 80%;
+    --accent-l: 65%;
+
+    --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --radius-sm: 10px;
+    --radius-md: 20px;
+    --radius-lg: 28px;
+}
+
+:root[data-theme="dark"] {
+    --bg-color: #020617;
+    --bg-gradient: radial-gradient(at 0% 0%, hsla(230, 85%, 60%, 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, hsla(280, 80%, 65%, 0.1) 0px, transparent 50%);
+    --card-bg: rgba(15, 23, 42, 0.7);
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border-color: rgba(226, 232, 240, 0.08);
+    --glass-bg: rgba(15, 23, 42, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.05);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+    --input-bg: rgba(2, 6, 23, 0.5);
+    --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
+    --secondary: hsl(var(--secondary-h), var(--secondary-s), var(--secondary-l));
+    --accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+    --danger: #ef4444;
+}
+
+:root[data-theme="light"] {
+    --bg-color: #f8fafc;
+    --bg-gradient: radial-gradient(at 0% 0%, hsla(230, 85%, 60%, 0.08) 0px, transparent 40%),
+        radial-gradient(at 100% 100%, hsla(280, 80%, 65%, 0.08) 0px, transparent 40%);
+    --card-bg: rgba(255, 255, 255, 0.9);
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: rgba(0, 0, 0, 0.05);
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+    --input-bg: #ffffff;
+    --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
+    --secondary: hsl(var(--secondary-h), var(--secondary-s), var(--secondary-l));
+    --accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+    --danger: #ef4444;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: var(--bg-color);
+    background-image: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--text-main);
+    line-height: 1.6;
+    min-height: 100vh;
+    transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+a {
+    transition: var(--transition);
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Navbar */
+.navbar {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 0.85rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.nav-logo {
+    font-size: 1.8rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.nav-link {
+    color: var(--text-muted);
+    font-weight: 600;
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nav-link.active {
+    color: var(--primary);
+    background: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.1);
+}
+
+/* Forms & Auth */
+.form-container {
+    max-width: 800px;
+    margin: 4rem auto;
+    padding: 3rem;
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--glass-shadow);
+}
+
+.auth-container {
+    min-height: calc(100vh - 100px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 450px;
+    background: var(--card-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    padding: 3.5rem 2.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    opacity: 0.9;
+}
+
+/* Premium Buttons */
+.btn {
+    padding: 0.85rem 1.75rem;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn:active {
+    transform: scale(0.96);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), #4f46e5, var(--accent));
+    background-size: 200% auto;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-position: right center;
+    box-shadow: 0 8px 20px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: var(--input-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: white;
+    border-color: transparent;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+
+.btn-danger:hover {
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+}
+
+/* Post Cards */
+.post-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    padding: 2.5rem;
+    margin-bottom: 3rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--glass-shadow);
+    transition: var(--transition);
+}
+
+.post-card:hover {
+    border-color: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.3);
+}
+
+.post-username {
+    color: var(--primary);
+    background: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.15);
+    padding: 0.3rem 0.8rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.post-title {
+    font-size: 2rem;
+    margin: 1.2rem 0;
+    color: var(--text-main);
+}
+
+.post-image {
+    width: 100%;
+    max-height: 550px;
+    border-radius: var(--radius-md);
+    margin-bottom: 2rem;
+    object-fit: contain;
+    background: #000;
+}
+
+.post-content {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    margin-bottom: 2.5rem;
+}
+
+/* Comments Overhaul */
+.comments-section {
+    margin-top: 2rem;
+    border-top: 1px solid var(--border-color);
+    padding-top: 2rem;
+}
+
+.comment-item {
+    background: hsla(0, 0%, 50%, 0.05);
+    padding: 1.5rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+    display: flex;
+    gap: 1.2rem;
+}
+
+.comment-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.comment-author {
+    font-weight: 800;
+    color: var(--primary);
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+    display: block;
+}
+
+.comment-text {
+    color: var(--text-main);
+    font-size: 1rem;
+}
+
+.comment-delete-btn {
+    background: transparent !important;
+    border: 1px solid #ef444433 !important;
+    color: #ef4444 !important;
+    padding: 0.5rem !important;
+    border-radius: 8px !important;
+    opacity: 0.6;
+}
+
+.comment-delete-btn:hover {
+    opacity: 1;
+    background: #ef4444 !important;
+    color: white !important;
+}
+
+.comment-form {
+    margin-top: 2.5rem;
+    display: flex;
+    gap: 1rem;
+}
+
+.comment-input {
+    flex: 1;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 1rem 1.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    outline: none;
+}
+
+.comment-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.2);
+}
+
+/* Theme Toggle UI in Account */
+.theme-switch-container {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.theme-switch-btn {
+    background: var(--primary);
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border-radius: 50px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    box-shadow: 0 4px 15px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.3);
+}
+
+/* Skeletons */
+.skeleton {
+    background: hsla(220, 13%, 91%, 0.05);
+    background-image: linear-gradient(to right, hsla(0, 0%, 100%, 0) 0%, hsla(0, 0%, 100%, 0.05) 50%, hsla(0, 0%, 100%, 0) 100%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 0.8rem 1.2rem;
+    }
+
+    .nav-links {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        padding: 0.75rem 0.5rem;
+        border-top: 1px solid var(--glass-border);
+        justify-content: space-around;
+    }
+
+    .home-container,
+    .account-container {
+        padding: 1rem;
+        padding-bottom: 6rem;
+    }
+
+    .post-card {
+        padding: 1.5rem;
+    }
+}
