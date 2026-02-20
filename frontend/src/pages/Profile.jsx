@@ -4,6 +4,7 @@ import axios from "../api/axios";
 import Post from "../components/Post";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import Spinner from "../components/Spinner";
+import UserList from "../components/UserList";
 import { toast } from "../utils/toast";
 
 export default function Profile({ currentUsername }) {
@@ -17,6 +18,7 @@ export default function Profile({ currentUsername }) {
   const [bio, setBio] = useState("");
   const [savingBio, setSavingBio] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [userList, setUserList] = useState({ show: false, users: [], title: "" });
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -93,6 +95,19 @@ export default function Profile({ currentUsername }) {
       toast.error(err.response?.data?.error || "Failed to upload avatar.");
     } finally {
       setAvatarLoading(false);
+    }
+  };
+
+  const fetchUserList = async (type) => {
+    try {
+      const res = await axios.get(`/profile/${username}/${type}`);
+      setUserList({
+        show: true,
+        users: res.data,
+        title: type === "followers" ? "Followers" : "Following",
+      });
+    } catch (err) {
+      toast.error(`Failed to fetch ${type}.`);
     }
   };
 
@@ -204,11 +219,11 @@ export default function Profile({ currentUsername }) {
             <span className="profile-stat-value">{posts.length}</span>
             <span className="profile-stat-label">Posts</span>
           </div>
-          <div className="profile-stat">
+          <div className="profile-stat" onClick={() => fetchUserList("followers")} style={{ cursor: "pointer" }}>
             <span className="profile-stat-value">{profile.followerCount}</span>
             <span className="profile-stat-label">Followers</span>
           </div>
-          <div className="profile-stat">
+          <div className="profile-stat" onClick={() => fetchUserList("following")} style={{ cursor: "pointer" }}>
             <span className="profile-stat-value">{profile.followingCount}</span>
             <span className="profile-stat-label">Following</span>
           </div>
@@ -259,6 +274,14 @@ export default function Profile({ currentUsername }) {
             />
           ))}
         </div>
+      )}
+
+      {userList.show && (
+        <UserList
+          title={userList.title}
+          users={userList.users}
+          onClose={() => setUserList({ ...userList, show: false })}
+        />
       )}
     </div>
   );
