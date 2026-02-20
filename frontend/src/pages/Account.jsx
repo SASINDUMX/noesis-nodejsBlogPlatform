@@ -1,31 +1,19 @@
-import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../api/axios";
 import Post from "../components/Post";
+import LoadingSkeleton from "../components/LoadingSkeleton";
+import Spinner from "../components/Spinner";
+import { usePosts } from "../hooks";
+import { toast } from "../utils/toast";
+import { useState } from "react";
 
 const Account = ({ onLogout, currentUsername, theme, onToggleTheme }) => {
-  const [posts, setPosts] = useState([]);
+  const { posts, loading, refetch } = usePosts("/pub/user");
+  const [loggingOut, setLoggingOut] = useState(false);
   const navigate = useNavigate();
 
-  const fetchPosts = async () => {
-    try {
-      const res = await axios.get("/pub/user");
-      setPosts(res.data);
-    } catch (err) {
-      console.error("Error fetching user posts:", err);
-      if (err.response?.status === 401) {
-        alert("You must be logged in to view your posts. Please login first.");
-      } else {
-        alert("Failed to load your posts. Please try again.");
-      }
-    }
-  };
-
-  useEffect(() => {
-    fetchPosts();
-  }, []);
-
   const handleLogout = async () => {
+    setLoggingOut(true);
     try {
       await axios.get("/auth/logout");
       localStorage.removeItem("username");
@@ -33,56 +21,63 @@ const Account = ({ onLogout, currentUsername, theme, onToggleTheme }) => {
       navigate("/login");
     } catch (err) {
       console.error("Logout error", err);
+      toast.error("Logout failed. Please try again.");
+      setLoggingOut(false);
     }
   };
 
   return (
-    <div className="account-container">
-      <div className="workspace-header" style={{ marginBottom: '3rem' }}>
-        <h1 className="home-title" style={{ textAlign: 'left', marginBottom: '1.5rem' }}>Personal workspace</h1>
+    <div className="home-container account-container">
+      <div className="workspace-header">
+        <h1 className="home-title">Personal Workspace</h1>
 
         <div className="theme-switch-container">
-          <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Display Settings</h3>
-          <button onClick={onToggleTheme} className="theme-switch-btn">
+          <h3>Display Settings</h3>
+          <button onClick={onToggleTheme} className="theme-switch-btn" aria-label="Toggle theme">
             {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+        <div className="workspace-actions">
           <Link to="/create" className="btn btn-primary">
-            <span>✨</span> New Post
+            <span aria-hidden="true">✨</span> New Post
           </Link>
-          <button onClick={handleLogout} className="btn btn-secondary">
-            <span>🚪</span> Logout
+          <button
+            onClick={handleLogout}
+            className="btn btn-secondary"
+            disabled={loggingOut}
+            style={{ minWidth: "120px", justifyContent: "center" }}
+          >
+            {loggingOut ? <Spinner size={16} /> : <><span aria-hidden="true">🚪</span> Logout</>}
           </button>
         </div>
       </div>
 
-      {posts.length === 0 ? (
-        <div className="post-card" style={{ padding: '5rem 2rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🖋️</div>
-          <h2 style={{ marginBottom: '1rem' }}>Your workspace is ready</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '2.5rem', maxWidth: '400px', marginInline: 'auto' }}>
-            Unleash your creativity and share your first story with the Noesis community today.
-          </p>
-          <Link to="/create" className="btn btn-primary">
+      {loading ? (
+        <LoadingSkeleton count={2} />
+      ) : posts.length === 0 ? (
+        <div className="post-card empty-state">
+          <div className="empty-icon">🖋️</div>
+          <h2>Your workspace is ready</h2>
+          <p>Unleash your creativity and share your first story with the Noesis community today.</p>
+          <Link to="/create" className="btn btn-primary" style={{ marginTop: "1.5rem" }}>
             Start Writing
           </Link>
         </div>
       ) : (
         <div className="posts-list">
-          {posts.map(post => (
+          {posts.map((post) => (
             <Post
               key={post._id}
               post={post}
               currentUsername={currentUsername}
-              fetchPosts={fetchPosts}
+              fetchPosts={refetch}
             />
           ))}
         </div>
       )}
     </div>
   );
-}
+};
 
 export default Account;
