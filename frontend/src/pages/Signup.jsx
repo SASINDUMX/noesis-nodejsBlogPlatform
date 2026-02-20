@@ -1,95 +1,122 @@
 import { useState } from "react";
 import axios from "../api/axios";
 import { useNavigate, Link } from "react-router-dom";
+import Spinner from "../components/Spinner";
+import { toast } from "../utils/toast";
 
 export default function Signup({ onSignup }) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setLoading(true);
     try {
-      await axios.post(
-        "/auth/signup",
-        { username, email, password }
-      );
-
+      await axios.post("/auth/signup", { username, email, password });
       localStorage.setItem("username", username);
       onSignup();
       navigate("/");
-
     } catch (err) {
       console.error("Signup error:", err);
-      if (err.response?.data?.message) {
-        alert(err.response.data.message);
-      } else if (err.response?.status === 500) {
-        alert("Username or email already exists. Please try a different one.");
-      } else {
-        alert("Signup failed. Please try again.");
-      }
+      const message =
+        err.response?.data?.message ||
+        (err.response?.status === 500
+          ? "Username or email already exists. Please try a different one."
+          : "Signup failed. Please try again.");
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <h2 className="home-title" style={{ fontSize: '2.2rem', marginBottom: '0.5rem' }}>Join Noesis</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>Start your sharing journey with us today</p>
+        <div className="auth-header">
+          <h2 className="home-title">Join Noesis</h2>
+          <p>Start your sharing journey with us today</p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <form onSubmit={handleSubmit} className="auth-form" noValidate>
+          {error && (
+            <div className="form-error-banner" role="alert">
+              ⚠️ {error}
+            </div>
+          )}
+
           <div className="form-group">
-            <label>Username</label>
+            <label htmlFor="signup-username">Username</label>
             <input
+              id="signup-username"
               className="comment-input"
-              placeholder="Your username"
+              placeholder="Choose a username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => { setUsername(e.target.value); setError(""); }}
               required
-              style={{ width: '100%' }}
+              autoComplete="username"
+              disabled={loading}
             />
           </div>
+
           <div className="form-group">
-            <label>Email Address</label>
+            <label htmlFor="signup-email">Email Address</label>
             <input
+              id="signup-email"
               type="email"
               className="comment-input"
               placeholder="name@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setError(""); }}
               required
-              style={{ width: '100%' }}
+              autoComplete="email"
+              disabled={loading}
             />
           </div>
+
           <div className="form-group">
-            <label>Password</label>
+            <label htmlFor="signup-password">Password</label>
             <input
+              id="signup-password"
               type="password"
               className="comment-input"
-              placeholder="Create a strong password"
+              placeholder="At least 6 characters"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); setError(""); }}
               required
-              style={{ width: '100%' }}
+              autoComplete="new-password"
+              minLength={6}
+              disabled={loading}
             />
           </div>
-          <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem', justifyContent: 'center', height: '3.5rem' }}>
-            <span>🚀</span> Create Account
+
+          <button
+            type="submit"
+            className="btn btn-primary auth-submit-btn"
+            disabled={loading || !username || !email || !password}
+          >
+            {loading
+              ? <Spinner size={18} color="white" />
+              : <><span aria-hidden="true">🚀</span> Create Account</>}
           </button>
         </form>
 
-        <div style={{ marginTop: '2.5rem', textAlign: 'center', fontSize: '1rem' }}>
-          <span style={{ color: 'var(--text-muted)' }}>Already a member? </span>
-          <Link to="/login" style={{ color: 'var(--primary)', fontWeight: '800', marginLeft: '0.5rem' }}>
-            Log in here
-          </Link>
-        </div>
+        <p className="auth-footer">
+          <span>Already a member?</span>
+          <Link to="/login">Log in here</Link>
+        </p>
       </div>
     </div>
   );
 }
-
