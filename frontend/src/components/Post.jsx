@@ -6,8 +6,6 @@ import { useConfirm } from "./ConfirmModal";
 import Spinner from "./Spinner";
 import { toast } from "../utils/toast";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
 export default function Post({ post, currentUsername, fetchPosts }) {
   const navigate = useNavigate();
   const [likes, setLikes] = useState(post.likes || 0);
@@ -22,14 +20,12 @@ export default function Post({ post, currentUsername, fetchPosts }) {
       { title: "Delete this post?", icon: "🗑️", confirmLabel: "Delete Post" }
     );
     if (!confirmed) return;
-
     setIsDeleting(true);
     try {
       await axios.post(`/pub/${post._id}/delete`);
       toast.success("Post deleted successfully.");
       if (fetchPosts) fetchPosts();
     } catch (err) {
-      console.error("Error deleting post:", err);
       toast.error(err.response?.data?.error || "Failed to delete post.");
     } finally {
       setIsDeleting(false);
@@ -47,10 +43,7 @@ export default function Post({ post, currentUsername, fetchPosts }) {
       const res = await axios.post(`/pub/${post._id}/like`);
       setLikes(res.data.likes);
     } catch (err) {
-      console.error("Like error", err);
-      if (err.response?.status === 401) {
-        toast.warning("Please log in to like posts.");
-      }
+      if (err.response?.status === 401) toast.warning("Please log in to like posts.");
     } finally {
       setIsLiking(false);
     }
@@ -61,14 +54,17 @@ export default function Post({ post, currentUsername, fetchPosts }) {
       {ConfirmModal}
 
       <div className="post-header">
-        <span className="post-username">@{post.username}</span>
+        {/* Username links to the user's profile page */}
+        <Link to={`/u/${post.username}`} className="post-username">
+          @{post.username}
+        </Link>
       </div>
 
       <h2 className="post-title">{post.title}</h2>
 
       {post.image && (
         <img
-          src={`${API_BASE}/uploads/${post.image}`}
+          src={post.image}  // Now a full Cloudinary URL, no prefix needed
           alt={`Image for post: ${post.title}`}
           className="post-image"
           loading="lazy"
@@ -85,11 +81,7 @@ export default function Post({ post, currentUsername, fetchPosts }) {
           aria-label={`Like post. Current likes: ${likes}`}
           style={{ minWidth: "110px", justifyContent: "center" }}
         >
-          {isLiking ? (
-            <Spinner size={16} color="white" />
-          ) : (
-            <>❤️ {likes > 0 && <span>({likes})</span>} Like</>
-          )}
+          {isLiking ? <Spinner size={16} color="white" /> : <>❤️ {likes > 0 && <span>({likes})</span>} Like</>}
         </button>
 
         <button
@@ -102,7 +94,7 @@ export default function Post({ post, currentUsername, fetchPosts }) {
         </button>
 
         {currentUsername === post.username && (
-          <div className="post-owner-actions">
+          <>
             <button className="btn btn-secondary" onClick={handleUpdate} aria-label="Edit post">
               <span aria-hidden="true">✏️</span> Edit
             </button>
@@ -115,7 +107,7 @@ export default function Post({ post, currentUsername, fetchPosts }) {
             >
               {isDeleting ? <Spinner size={16} color="white" /> : <><span aria-hidden="true">🗑️</span> Delete</>}
             </button>
-          </div>
+          </>
         )}
       </div>
 
