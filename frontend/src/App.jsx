@@ -8,11 +8,11 @@ import CreatePost from "./pages/CreatePost";
 import UpdatePost from "./pages/UpdatePost";
 import Search from "./pages/Search";
 import Navbar from "./components/Navbar";
-import "./index.css"
+import "./index.css";
 
 function App() {
-  const [username, setUsername] = useState(localStorage.getItem("username"));
-  const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
+  const [username, setUsername] = useState(() => localStorage.getItem("username"));
+  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -20,58 +20,65 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      setUsername(localStorage.getItem("username"));
-    };
+    const handleStorageChange = () => setUsername(localStorage.getItem("username"));
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  const refreshAuth = () => {
-    setUsername(localStorage.getItem("username"));
-  };
-
-  const toggleTheme = () => {
-    setTheme(prev => prev === "dark" ? "light" : "dark");
-  };
+  const refreshAuth = () => setUsername(localStorage.getItem("username"));
+  const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
   const isAuthenticated = !!username;
 
   return (
     <BrowserRouter>
       <Navbar username={username} />
-      <Routes>
-        <Route path="/login" element={<Login onLogin={refreshAuth} />} />
-        <Route path="/signup" element={<Signup onSignup={refreshAuth} />} />
-        <Route
-          path="/"
-          element={isAuthenticated ? <Home currentUsername={username} /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/account"
-          element={isAuthenticated ? (
-            <Account
-              currentUsername={username}
-              onLogout={refreshAuth}
-              theme={theme}
-              onToggleTheme={toggleTheme}
-            />
-          ) : <Navigate to="/login" />}
-        />
+      <main>
+        <Routes>
+          <Route path="/login" element={<Login onLogin={refreshAuth} />} />
+          <Route path="/signup" element={<Signup onSignup={refreshAuth} />} />
 
-        <Route
-          path="/create"
-          element={isAuthenticated ? <CreatePost /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/update/:id"
-          element={isAuthenticated ? <UpdatePost /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/search"
-          element={isAuthenticated ? <Search /> : <Navigate to="/login" />}
-        />
-      </Routes>
+          <Route
+            path="/"
+            element={isAuthenticated ? <Home currentUsername={username} /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/account"
+            element={
+              isAuthenticated ? (
+                <Account
+                  currentUsername={username}
+                  onLogout={refreshAuth}
+                  theme={theme}
+                  onToggleTheme={toggleTheme}
+                />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/create"
+            element={isAuthenticated ? <CreatePost /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/update/:id"
+            element={isAuthenticated ? <UpdatePost /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/search"
+            element={
+              isAuthenticated ? (
+                <Search currentUsername={username} />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
     </BrowserRouter>
   );
 }
