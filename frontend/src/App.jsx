@@ -8,7 +8,9 @@ import Account from "./pages/Account";
 import CreatePost from "./pages/CreatePost";
 import UpdatePost from "./pages/UpdatePost";
 import Search from "./pages/Search";
+import Profile from "./pages/Profile";
 import Navbar from "./components/Navbar";
+import { useNotifications } from "./hooks/useNotifications";
 import "./index.css";
 
 function App() {
@@ -21,6 +23,7 @@ function App() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
+  // Verify session on load
   useEffect(() => {
     axios
       .get("/auth/me")
@@ -35,13 +38,11 @@ function App() {
       .finally(() => setAuthChecked(true));
   }, []);
 
-  const refreshAuth = () => {
-    setUsername(localStorage.getItem("username"));
-  };
+  const refreshAuth = () => setUsername(localStorage.getItem("username"));
+  const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-  };
+  // Notifications — only active when logged in
+  const { notifications, unreadCount, markAllRead } = useNotifications(username);
 
   if (!authChecked) {
     return (
@@ -57,16 +58,26 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Navbar username={username} />
+      <Navbar
+        username={username}
+        notifications={notifications}
+        unreadCount={unreadCount}
+        onMarkAllRead={markAllRead}
+      />
       <main>
         <Routes>
           <Route path="/login" element={<Login onLogin={refreshAuth} />} />
           <Route path="/signup" element={<Signup onSignup={refreshAuth} />} />
+
           <Route path="/" element={isAuthenticated ? <Home currentUsername={username} /> : <Navigate to="/login" replace />} />
           <Route path="/account" element={isAuthenticated ? <Account currentUsername={username} onLogout={refreshAuth} theme={theme} onToggleTheme={toggleTheme} /> : <Navigate to="/login" replace />} />
           <Route path="/create" element={isAuthenticated ? <CreatePost /> : <Navigate to="/login" replace />} />
           <Route path="/update/:id" element={isAuthenticated ? <UpdatePost /> : <Navigate to="/login" replace />} />
           <Route path="/search" element={isAuthenticated ? <Search currentUsername={username} /> : <Navigate to="/login" replace />} />
+
+          {/* Public profile page */}
+          <Route path="/u/:username" element={<Profile currentUsername={username} />} />
+
           <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
         </Routes>
       </main>
