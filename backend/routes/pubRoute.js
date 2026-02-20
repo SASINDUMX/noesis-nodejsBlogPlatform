@@ -1,28 +1,18 @@
 const router = require("express").Router();
-const path = require("path");
-const fs = require("fs");
 const Post = require("../models/Post");
+const User = require("../models/User");
+const Notification = require("../models/Notification");
 const requireAuth = require("../middleware/requireAuth");
-const upload = require("../middleware/upload");
+const { uploadPost, deleteFromCloudinary } = require("../middleware/cloudinaryUpload");
 const { validatePost, validateComment } = require("../middleware/validate");
+const { pushNotification } = require("../socketManager");
 
-// ─── Helper: safely delete an uploaded file ──────────────────────────────────
-function deleteFile(filename) {
-  if (!filename) return;
-  const filePath = path.join(__dirname, "..", "uploads", filename);
-  if (fs.existsSync(filePath)) {
-    fs.unlink(filePath, (err) => {
-      if (err) console.error("Failed to delete file:", filePath, err.message);
-    });
-  }
-}
-
-// ─── GET /pub — all posts ─────────────────────────────────────────────────────
+// ─── GET /pub ─────────────────────────────────────────────────────────────────
 router.get("/", async (req, res, next) => {
   try {
     const posts = await Post.find()
       .sort({ createdAt: -1 })
-      .select("-likedBy") // Don't expose who liked what to everyone
+      .select("-likedBy")
       .lean();
     res.json(posts);
   } catch (err) {
@@ -30,33 +20,25 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-// ─── GET /pub/search ─────────────────────────────────────────────────────────
+// ─── GET /pub/search ──────────────────────────────────────────────────────────
 router.get("/search", async (req, res, next) => {
   try {
     const query = req.query.q?.trim() || "";
     if (!query) return res.json([]);
-
-    // Limit query length to prevent regex DoS
     if (query.length > 100) {
       return res.status(400).json({ error: "Search query too long." });
     }
-
-    // Escape special regex characters from user input
     const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-    const posts = await Post.find({
-      title: { $regex: escaped, $options: "i" },
-    })
+    const posts = await Post.find({ title: { $regex: escaped, $options: "i" } })
       .select("-likedBy")
       .lean();
-
     res.json(posts);
   } catch (err) {
     next(err);
   }
 });
 
-// ─── GET /pub/user — current user's posts ────────────────────────────────────
+// ─── GET /pub/user ────────────────────────────────────────────────────────────
 router.get("/user", requireAuth, async (req, res, next) => {
   try {
     const posts = await Post.find({ username: req.session.username })
@@ -72,30 +54,26 @@ router.get("/user", requireAuth, async (req, res, next) => {
 router.post(
   "/",
   requireAuth,
-  upload.single("image"),
+  uploadPost.single("image"),
   validatePost,
   async (req, res, next) => {
     try {
-      const { title, content } = req.body;
-
       const post = new Post({
-        title,
-        content,
+        title: req.body.title,
+        content: req.body.content,
         username: req.session.username,
-        image: req.file ? req.file.filename : undefined,
+        image: req.file ? req.file.path : undefined, // Cloudinary URL
       });
-
       await post.save();
       res.status(201).json({ message: "Post created", post });
     } catch (err) {
-      // If DB save fails, clean up the uploaded file so we don't orphan it
-      if (req.file) deleteFile(req.file.filename);
+      if (req.file) await deleteFromCloudinary(req.file.path);
       next(err);
     }
   }
 );
 
-// ─── GET /pub/:id — single post ───────────────────────────────────────────────
+// ─── GET /pub/:id ─────────────────────────────────────────────────────────────
 router.get("/:id", async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.id).lean();
@@ -110,41 +88,37 @@ router.get("/:id", async (req, res, next) => {
 router.post(
   "/:id/update",
   requireAuth,
-  upload.single("image"),
+  uploadPost.single("image"),
   validatePost,
   async (req, res, next) => {
     try {
-      const { title, content, removeImage } = req.body;
       const post = await Post.findById(req.params.id);
-
       if (!post) {
-        if (req.file) deleteFile(req.file.filename);
+        if (req.file) await deleteFromCloudinary(req.file.path);
         return res.status(404).json({ error: "Post not found." });
       }
-
       if (post.username !== req.session.username) {
-        if (req.file) deleteFile(req.file.filename);
+        if (req.file) await deleteFromCloudinary(req.file.path);
         return res.status(403).json({ error: "You can only edit your own posts." });
       }
 
-      post.title = title;
-      post.content = content;
+      post.title = req.body.title;
+      post.content = req.body.content;
 
-      if (removeImage === "true" && post.image) {
-        deleteFile(post.image);
+      if (req.body.removeImage === "true" && post.image) {
+        await deleteFromCloudinary(post.image);
         post.image = undefined;
       }
 
       if (req.file) {
-        // Remove old image before saving new one
-        if (post.image) deleteFile(post.image);
-        post.image = req.file.filename;
+        if (post.image) await deleteFromCloudinary(post.image);
+        post.image = req.file.path;
       }
 
       await post.save();
       res.json({ message: "Post updated", post });
     } catch (err) {
-      if (req.file) deleteFile(req.file.filename);
+      if (req.file) await deleteFromCloudinary(req.file.path);
       next(err);
     }
   }
@@ -155,14 +129,10 @@ router.post("/:id/delete", requireAuth, async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ error: "Post not found." });
-
     if (post.username !== req.session.username) {
       return res.status(403).json({ error: "You can only delete your own posts." });
     }
-
-    // Clean up image file from disk
-    if (post.image) deleteFile(post.image);
-
+    if (post.image) await deleteFromCloudinary(post.image);
     await Post.findByIdAndDelete(req.params.id);
     res.json({ message: "Post deleted", postId: post._id });
   } catch (err) {
@@ -180,11 +150,35 @@ router.post("/:id/like", requireAuth, async (req, res, next) => {
     const hasLiked = post.likedBy.includes(username);
 
     if (hasLiked) {
-      post.likes = Math.max(0, post.likes - 1); // Never go below 0
+      post.likes = Math.max(0, post.likes - 1);
       post.likedBy = post.likedBy.filter((u) => u !== username);
     } else {
       post.likes += 1;
       post.likedBy.push(username);
+
+      // Notify post owner (not if they liked their own post)
+      if (post.username !== username) {
+        const sender = await User.findOne({ username }).select("avatar").lean();
+        const notification = await Notification.create({
+          recipient: post.username,
+          sender: username,
+          type: "like",
+          postId: post._id,
+          postTitle: post.title,
+          senderAvatar: sender?.avatar || "",
+        });
+        pushNotification(post.username, {
+          _id: notification._id,
+          type: "like",
+          sender: username,
+          postTitle: post.title,
+          postId: post._id,
+          message: `${username} liked your post "${post.title}".`,
+          senderAvatar: sender?.avatar || "",
+          createdAt: notification.createdAt,
+          read: false,
+        });
+      }
     }
 
     await post.save();
@@ -211,19 +205,45 @@ router.post("/:id/comment", requireAuth, validateComment, async (req, res, next)
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ error: "Post not found." });
 
-    const comment = { content: req.body.content, username: req.session.username };
-    post.comments.push(comment);
+    const { username } = req.session;
+    post.comments.push({ content: req.body.content, username });
     await post.save();
 
-    // Return the newly added comment (last item in the array)
     const savedComment = post.comments[post.comments.length - 1];
-    res.json({ message: "Comment added", comment: savedComment, username: req.session.username });
+
+    // Notify post owner (not if they comment on their own post)
+    if (post.username !== username) {
+      const sender = await User.findOne({ username }).select("avatar").lean();
+      const notification = await Notification.create({
+        recipient: post.username,
+        sender: username,
+        type: "comment",
+        postId: post._id,
+        postTitle: post.title,
+        senderAvatar: sender?.avatar || "",
+        content: req.body.content,
+      });
+      pushNotification(post.username, {
+        _id: notification._id,
+        type: "comment",
+        sender: username,
+        postTitle: post.title,
+        postId: post._id,
+        message: `${username} commented on your post "${post.title}".`,
+        senderAvatar: sender?.avatar || "",
+        content: req.body.content,
+        createdAt: notification.createdAt,
+        read: false,
+      });
+    }
+
+    res.json({ message: "Comment added", comment: savedComment, username });
   } catch (err) {
     next(err);
   }
 });
 
-// ─── POST /pub/:postId/comment/:commentId/delete ─────────────────────────────
+// ─── POST /pub/:postId/comment/:commentId/delete ──────────────────────────────
 router.post("/:postId/comment/:commentId/delete", requireAuth, async (req, res, next) => {
   try {
     const { postId, commentId } = req.params;
@@ -235,16 +255,12 @@ router.post("/:postId/comment/:commentId/delete", requireAuth, async (req, res, 
     const comment = post.comments.id(commentId);
     if (!comment) return res.status(404).json({ error: "Comment not found." });
 
-    const isCommentOwner = comment.username === username;
-    const isPostOwner = post.username === username;
-
-    if (!isCommentOwner && !isPostOwner) {
+    if (comment.username !== username && post.username !== username) {
       return res.status(403).json({ error: "You can only delete your own comments." });
     }
 
     post.comments.pull({ _id: commentId });
     await post.save();
-
     res.json({ message: "Comment deleted" });
   } catch (err) {
     next(err);

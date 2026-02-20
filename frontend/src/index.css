@@ -201,6 +201,23 @@ button {
     }
 }
 
+@keyframes highlightPost {
+    0% {
+        box-shadow: 0 0 0 0px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0);
+        border-color: var(--border-color);
+    }
+
+    30% {
+        box-shadow: 0 0 0 4px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.3);
+        border-color: var(--primary);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0);
+        border-color: var(--border-color);
+    }
+}
+
 /* ============================= */
 /* LAYOUT */
 /* ============================= */
@@ -288,6 +305,11 @@ main {
 .post-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+}
+
+.post-card--highlight {
+    animation: highlightPost 2.5s ease-out;
+    border-color: var(--primary) !important;
 }
 
 .post-header {
@@ -994,5 +1016,342 @@ main {
 
     .home-title {
         font-size: 1.8rem;
+    }
+}
+
+/* ============================= */
+/* NOTIFICATION BELL */
+/* ============================= */
+
+.notif-bell-btn {
+    position: relative;
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s ease;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+}
+
+.notif-bell-btn:hover {
+    background: var(--secondary-btn-bg);
+}
+
+.notif-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: var(--danger);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 800;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    font-family: 'Outfit', sans-serif;
+    pointer-events: none;
+}
+
+.notif-dropdown {
+    position: absolute;
+    top: calc(100% + 0.75rem);
+    right: 0;
+    width: 340px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--glass-shadow);
+    z-index: 2000;
+    overflow: hidden;
+    animation: slideUp 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.notif-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 700;
+    font-size: 0.95rem;
+    font-family: 'Outfit', sans-serif;
+}
+
+.notif-list {
+    max-height: 380px;
+    overflow-y: auto;
+}
+
+.notif-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.notif-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.15s ease;
+    position: relative;
+}
+
+.notif-item:last-child {
+    border-bottom: none;
+}
+
+.notif-item:hover {
+    background: var(--secondary-btn-bg);
+}
+
+.notif-item--unread {
+    background: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.06);
+}
+
+.notif-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+    background: var(--secondary-btn-bg);
+}
+
+.notif-avatar-placeholder {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 800;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    font-family: 'Outfit', sans-serif;
+}
+
+.notif-icon-inline {
+    font-size: 1rem;
+    margin-right: 0.25rem;
+}
+
+.notif-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.notif-message {
+    font-size: 0.875rem;
+    color: var(--text-main);
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.notif-content-snippet {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: hsla(0, 0%, 50%, 0.05);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    border-left: 3px solid var(--primary);
+    font-style: italic;
+    line-height: 1.4;
+}
+
+.notif-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.notif-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    flex-shrink: 0;
+    margin-top: 0.4rem;
+}
+
+/* ============================= */
+/* PROFILE PAGE */
+/* ============================= */
+
+.profile-card {
+    margin-bottom: 2rem;
+}
+
+.profile-top {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.profile-avatar-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--border-color);
+    display: block;
+}
+
+.profile-avatar-placeholder {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: white;
+    font-family: 'Outfit', sans-serif;
+}
+
+.profile-avatar-edit {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: var(--primary);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    cursor: pointer;
+    border: 2px solid var(--bg-color);
+    transition: background 0.2s ease;
+}
+
+.profile-avatar-edit:hover {
+    background: var(--accent);
+}
+
+.profile-info {
+    flex: 1;
+    min-width: 200px;
+}
+
+.profile-username {
+    font-size: 1.8rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-main);
+}
+
+.profile-bio {
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+    cursor: text;
+}
+
+.profile-bio-edit {
+    margin-bottom: 0.75rem;
+}
+
+.profile-joined {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.profile-stats {
+    display: flex;
+    gap: 2.5rem;
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.profile-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.profile-stat-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-main);
+}
+
+.profile-stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Make post usernames look like links */
+.post-username {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+}
+
+.post-username:hover {
+    opacity: 0.75;
+    text-decoration: underline;
+}
+
+/* ============================= */
+/* MOBILE ADDITIONS */
+/* ============================= */
+
+@media (max-width: 768px) {
+    .notif-dropdown {
+        width: calc(100vw - 2rem);
+        right: -1rem;
+    }
+
+    .profile-top {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .profile-stats {
+        justify-content: center;
+    }
+
+    .profile-info {
+        min-width: unset;
+        width: 100%;
+        text-align: center;
     }
 }

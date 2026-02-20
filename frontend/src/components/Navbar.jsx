@@ -1,11 +1,13 @@
 import { NavLink, Link } from "react-router-dom";
+import NotificationBell from "./NotificationBell";
 
-const Navbar = ({ username }) => {
+const Navbar = ({ username, notifications, unreadCount, onMarkAllRead }) => {
   return (
     <nav className="navbar" role="navigation" aria-label="Main navigation">
       <Link to="/" className="nav-logo" aria-label="Noesis home">
         Noesis
       </Link>
+
       <div className="nav-links">
         {username ? (
           <>
@@ -18,6 +20,11 @@ const Navbar = ({ username }) => {
             <NavLink to="/account" className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}>
               <span aria-hidden="true">👤</span> Account
             </NavLink>
+            <NotificationBell
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onMarkAllRead={onMarkAllRead}
+            />
           </>
         ) : (
           <>
