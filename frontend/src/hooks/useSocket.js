@@ -17,14 +17,16 @@ export function useSocket(username, onNotification) {
   onNotificationRef.current = onNotification;
 
   useEffect(() => {
-    if (!username) return;
-
     // Reuse existing socket if already connected
-    if (!socket) {
+    if (!socket && username) {
       socket = io(SOCKET_URL, { withCredentials: true });
     }
 
-    socket.emit("register", username);
+    if (socket) {
+      socket.emit("register", username);
+    }
+
+    if (!username) return;
 
     const handler = (notification) => {
       onNotificationRef.current?.(notification);
