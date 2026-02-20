@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const Post = require("../models/Post");
+const User = require("../models/User");
 const Notification = require("../models/Notification");
 const requireAuth = require("../middleware/requireAuth");
 const { uploadPost, deleteFromCloudinary } = require("../middleware/cloudinaryUpload");
@@ -157,12 +158,14 @@ router.post("/:id/like", requireAuth, async (req, res, next) => {
 
       // Notify post owner (not if they liked their own post)
       if (post.username !== username) {
+        const sender = await User.findOne({ username }).select("avatar").lean();
         const notification = await Notification.create({
           recipient: post.username,
           sender: username,
           type: "like",
           postId: post._id,
           postTitle: post.title,
+          senderAvatar: sender?.avatar || "",
         });
         pushNotification(post.username, {
           _id: notification._id,
@@ -171,6 +174,7 @@ router.post("/:id/like", requireAuth, async (req, res, next) => {
           postTitle: post.title,
           postId: post._id,
           message: `${username} liked your post "${post.title}".`,
+          senderAvatar: sender?.avatar || "",
           createdAt: notification.createdAt,
           read: false,
         });
@@ -209,12 +213,15 @@ router.post("/:id/comment", requireAuth, validateComment, async (req, res, next)
 
     // Notify post owner (not if they comment on their own post)
     if (post.username !== username) {
+      const sender = await User.findOne({ username }).select("avatar").lean();
       const notification = await Notification.create({
         recipient: post.username,
         sender: username,
         type: "comment",
         postId: post._id,
         postTitle: post.title,
+        senderAvatar: sender?.avatar || "",
+        content: req.body.content,
       });
       pushNotification(post.username, {
         _id: notification._id,
@@ -223,6 +230,8 @@ router.post("/:id/comment", requireAuth, validateComment, async (req, res, next)
         postTitle: post.title,
         postId: post._id,
         message: `${username} commented on your post "${post.title}".`,
+        senderAvatar: sender?.avatar || "",
+        content: req.body.content,
         createdAt: notification.createdAt,
         read: false,
       });
