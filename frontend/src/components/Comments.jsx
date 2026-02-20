@@ -1,101 +1,80 @@
 import { useState, useEffect } from "react";
-import axios from "../api/axios";
+import { useComments } from "../hooks";
+import { useConfirm } from "./ConfirmModal";
+import Spinner from "./Spinner";
 
-export default function Comments({ postId, currentUsername, postOwner, isExpanded: externalExpanded, onToggle }) {
-  const [comments, setComments] = useState([]);
+export default function Comments({ postId, currentUsername, postOwner, isExpanded }) {
+  const { comments, loading, hasFetched, fetchComments, addComment, deleteComment } = useComments(postId);
   const [content, setContent] = useState("");
-  const [localExpanded, setLocalExpanded] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const { confirm, ConfirmModal } = useConfirm();
 
-  // Sync with external state if provided, otherwise manage internally
-  const isExpanded = externalExpanded !== undefined ? externalExpanded : localExpanded;
-  const toggle = onToggle || (() => setLocalExpanded(!localExpanded));
-
-  const fetchComments = async () => {
-    try {
-      const res = await axios.get(`/pub/${postId}/comments`);
-      setComments(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
+  // Lazy-load: only fetch when first expanded
   useEffect(() => {
-    fetchComments();
-  }, [postId]);
+    if (isExpanded && !hasFetched) {
+      fetchComments();
+    }
+  }, [isExpanded, hasFetched, fetchComments]);
 
   const handleAddComment = async (e) => {
     e.preventDefault();
-    if (!content.trim()) return;
-
-    try {
-      const response = await axios.post(`/pub/${postId}/comment`, { content });
-      if (response.status === 200) {
-        setContent("");
-        fetchComments(); // refresh comments
-      }
-    } catch (err) {
-      console.error("Error adding comment:", err);
-      if (err.response?.status === 401) {
-        alert("You must be logged in to comment. Please login first.");
-      } else {
-        alert(err.response?.data?.error || "Failed to add comment. Please try again.");
-      }
-    }
+    if (!content.trim() || submitting) return;
+    setSubmitting(true);
+    const success = await addComment(content.trim());
+    if (success) setContent("");
+    setSubmitting(false);
   };
 
   const handleDeleteComment = async (commentId) => {
-    try {
-      const response = await axios.post(`/pub/${postId}/comment/${commentId}/delete`);
-      if (response.status === 200) {
-        fetchComments(); // refresh comments
-      }
-    } catch (err) {
-      console.error("Error deleting comment:", err);
-      alert(err.response?.data?.error || "Failed to delete comment. Please try again.");
-    }
+    const confirmed = await confirm(
+      "This comment will be permanently removed and cannot be recovered.",
+      { title: "Delete comment?", icon: "💬", confirmLabel: "Delete" }
+    );
+    if (confirmed) deleteComment(commentId);
   };
 
-  const getInitials = (user) => {
-    return user ? user.charAt(0).toUpperCase() : "?";
-  };
+  const getInitials = (user) => (user ? user.charAt(0).toUpperCase() : "?");
+
+  if (!isExpanded) return null;
 
   return (
-    <div className="comments-section">
-      {isExpanded && (
-        <div className="comments-wrapper" style={{ animation: 'pulse 0.4s ease-out' }}>
-          <div className="comments-list">
-            {comments.length === 0 ? (
-              <p style={{ fontSize: '1rem', color: 'var(--text-muted)', padding: '2rem', textAlign: 'center' }}>
-                No stories shared here yet. Be the first!
-              </p>
-            ) : (
-              comments.map((c) => (
-                <div key={c._id} className="comment-item">
-                  <div className="comment-avatar">
-                    {getInitials(c.username)}
-                  </div>
-                  <div className="comment-content-wrapper" style={{ flex: 1 }}>
-                    <div className="comment-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span className="comment-author">@{c.username}</span>
-                      {(currentUsername === c.username || currentUsername === postOwner) && (
-                        <button
-                          className="comment-delete-btn"
-                          onClick={() => {
-                            if (window.confirm("Delete this comment permanently?")) {
-                              handleDeleteComment(c._id);
-                            }
-                          }}
-                        >
-                          🗑️
-                        </button>
-                      )}
+    <>
+      {ConfirmModal}
+      <div className="comments-section">
+        <div className="comments-wrapper">
+          {loading ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "2rem" }}>
+              <Spinner size={28} color="var(--primary)" />
+            </div>
+          ) : (
+            <div className="comments-list">
+              {comments.length === 0 ? (
+                <p className="comments-empty">No stories shared here yet. Be the first!</p>
+              ) : (
+                comments.map((c) => (
+                  <div key={c._id} className="comment-item">
+                    <div className="comment-avatar">{getInitials(c.username)}</div>
+                    <div className="comment-content-wrapper">
+                      <div className="comment-header">
+                        <span className="comment-author">@{c.username}</span>
+                        {(currentUsername === c.username || currentUsername === postOwner) && (
+                          <button
+                            className="comment-delete-btn"
+                            onClick={() => handleDeleteComment(c._id)}
+                            aria-label="Delete comment"
+                            title="Delete comment"
+                          >
+                            🗑️
+                          </button>
+                        )}
+                      </div>
+                      <p className="comment-text">{c.content}</p>
                     </div>
-                    <p className="comment-text">{c.content}</p>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
+                ))
+              )}
+            </div>
+          )}
 
           <form onSubmit={handleAddComment} className="comment-form">
             <input
@@ -104,13 +83,21 @@ export default function Comments({ postId, currentUsername, postOwner, isExpande
               onChange={(e) => setContent(e.target.value)}
               placeholder="What are your thoughts?"
               className="comment-input"
+              disabled={submitting}
+              maxLength={500}
+              aria-label="Add a comment"
             />
-            <button className="btn btn-primary" type="submit">
-              Post Comment
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={submitting || !content.trim()}
+              style={{ minWidth: "130px", justifyContent: "center" }}
+            >
+              {submitting ? <Spinner size={16} color="white" /> : "Post Comment"}
             </button>
           </form>
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }
