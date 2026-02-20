@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import axios from "../api/axios";
 import { useNavigate, Link } from "react-router-dom";
 import Comments from "./Comments";
@@ -6,13 +6,26 @@ import { useConfirm } from "./ConfirmModal";
 import Spinner from "./Spinner";
 import { toast } from "../utils/toast";
 
-export default function Post({ post, currentUsername, fetchPosts }) {
+export default function Post({ post, currentUsername, fetchPosts, highlightId }) {
+  const postRef = useRef(null);
   const navigate = useNavigate();
   const [likes, setLikes] = useState(post.likes || 0);
   const [isLiking, setIsLiking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCommentsExpanded, setIsCommentsExpanded] = useState(false);
   const { confirm, ConfirmModal } = useConfirm();
+
+  const isHighlighted = highlightId === post._id;
+
+  useEffect(() => {
+    if (isHighlighted && postRef.current) {
+      // Small delay to ensure everything is rendered and browser is ready
+      const timeout = setTimeout(() => {
+        postRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 300);
+      return () => clearTimeout(timeout);
+    }
+  }, [isHighlighted]);
 
   const handleDelete = async () => {
     const confirmed = await confirm(
@@ -50,7 +63,10 @@ export default function Post({ post, currentUsername, fetchPosts }) {
   };
 
   return (
-    <article className="post-card">
+    <article
+      ref={postRef}
+      className={`post-card ${isHighlighted ? "post-card--highlight" : ""}`}
+    >
       {ConfirmModal}
 
       <div className="post-header">
