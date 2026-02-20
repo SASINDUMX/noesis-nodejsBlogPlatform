@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "../api/axios";
-import Comments from "../components/Comments";
+import Post from "../components/Post";
 import "../index.css";
 
 const LoadingSkeleton = () => (
@@ -23,11 +23,6 @@ const LoadingSkeleton = () => (
 export default function Home({ currentUsername }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [commentCounts, setCommentCounts] = useState({});
-
-  const updateCount = (postId, count) => {
-    setCommentCounts(prev => ({ ...prev, [postId]: count }));
-  };
 
   const fetchPosts = async () => {
     try {
@@ -46,17 +41,6 @@ export default function Home({ currentUsername }) {
   useEffect(() => {
     fetchPosts();
   }, []);
-
-  const [expandedPostIds, setExpandedPostIds] = useState(new Set());
-
-  const toggleComments = (postId) => {
-    setExpandedPostIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(postId)) newSet.delete(postId);
-      else newSet.add(postId);
-      return newSet;
-    });
-  };
 
   if (loading) {
     return (
@@ -79,55 +63,12 @@ export default function Home({ currentUsername }) {
       ) : (
         <div className="posts-list">
           {posts.map((post) => (
-            <div key={post._id} className="post-card">
-              <div className="post-header">
-                <span className="post-username">@{post.username}</span>
-              </div>
-              <h2 className="post-title">{post.title}</h2>
-              {post.image && (
-                <img
-                  src={`http://localhost:5000/uploads/${post.image}`}
-                  alt={post.title}
-                  className="post-image"
-                />
-              )}
-              <p className="post-content">{post.content}</p>
-
-              <div className="post-actions">
-                <button
-                  className="btn btn-primary"
-                  onClick={async () => {
-                    try {
-                      const res = await axios.post(`/pub/${post._id}/like`);
-                      setPosts(posts.map(p => p._id === post._id ? { ...p, likes: res.data.likes } : p));
-                    } catch (err) {
-                      console.error("Like error", err);
-                      if (err.response?.status === 401) alert("Login to like posts");
-                    }
-                  }}
-                >
-                  ❤️ {post.likes > 0 && <span>({post.likes})</span>} Like
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => toggleComments(post._id)}
-                  style={{ fontSize: '0.875rem' }}
-                >
-                  💬 {expandedPostIds.has(post._id) ? "Hide Comments" :
-                    `Comments${commentCounts[post._id] ? ` (${commentCounts[post._id]})` : ""}`}
-                </button>
-              </div>
-
-              <Comments
-                postId={post._id}
-                currentUsername={currentUsername}
-                postOwner={post.username}
-                isExpanded={expandedPostIds.has(post._id)}
-                onToggle={() => toggleComments(post._id)}
-                onCountChange={(count) => updateCount(post._id, count)}
-              />
-
-            </div>
+            <Post
+              key={post._id}
+              post={post}
+              currentUsername={currentUsername}
+              fetchPosts={fetchPosts}
+            />
           ))}
         </div>
       )}

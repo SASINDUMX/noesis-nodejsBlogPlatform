@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../api/axios";
+import Post from "../components/Post";
 
 const Account = ({ onLogout, currentUsername, theme, onToggleTheme }) => {
   const [posts, setPosts] = useState([]);
@@ -23,19 +24,6 @@ const Account = ({ onLogout, currentUsername, theme, onToggleTheme }) => {
   useEffect(() => {
     fetchPosts();
   }, []);
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this post?")) return;
-    try {
-      const response = await axios.post(`/pub/${id}/delete`);
-      if (response.status === 200) {
-        setPosts(posts.filter(p => p._id !== id));
-      }
-    } catch (err) {
-      console.error("Error deleting post:", err);
-      alert(err.response?.data?.error || "Failed to delete post. Please try again.");
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -84,32 +72,12 @@ const Account = ({ onLogout, currentUsername, theme, onToggleTheme }) => {
       ) : (
         <div className="posts-list">
           {posts.map(post => (
-            <div key={post._id} className="post-card">
-              <h2 className="post-title">{post.title}</h2>
-              {post.image && (
-                <img
-                  src={`http://localhost:5000/uploads/${post.image}`}
-                  alt={post.title}
-                  className="post-image"
-                />
-              )}
-              <p className="post-content">{post.content}</p>
-              <div className="post-actions" style={{ justifyContent: 'flex-start', gap: '1.2rem' }}>
-                {currentUsername === post.username && (
-                  <>
-                    <Link to={`/update/${post._id}`} className="btn btn-secondary">
-                      <span>✏️</span> Edit
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(post._id)}
-                      className="btn btn-danger"
-                    >
-                      <span>🗑️</span> Delete
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+            <Post
+              key={post._id}
+              post={post}
+              currentUsername={currentUsername}
+              fetchPosts={fetchPosts}
+            />
           ))}
         </div>
       )}

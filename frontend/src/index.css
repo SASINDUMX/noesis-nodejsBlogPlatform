@@ -395,6 +395,12 @@ a {
     animation: loading 1.5s infinite;
 }
 
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
 @keyframes loading {
     0% {
         background-position: 200% 0;
@@ -411,6 +417,8 @@ a {
         padding: 0.8rem 1.2rem;
     }
 
+
+
     .nav-links {
         position: fixed;
         bottom: 0;
@@ -422,6 +430,9 @@ a {
         border-top: 1px solid var(--glass-border);
         justify-content: space-around;
     }
+
+
+
 
     .home-container,
     .account-container {
