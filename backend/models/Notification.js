@@ -29,6 +29,14 @@ const NotificationSchema = new Schema(
       type: String,
       default: "",
     },
+    senderAvatar: {
+      type: String,
+      default: "",
+    },
+    content: {
+      type: String,
+      default: "",
+    },
     read: {
       type: Boolean,
       default: false,
