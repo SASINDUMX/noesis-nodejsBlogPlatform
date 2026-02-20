@@ -127,6 +127,7 @@ router.post("/:username/follow", requireAuth, async (req, res, next) => {
         recipient: targetUsername,
         sender: currentUsername,
         type: "follow",
+        senderAvatar: currentUser.avatar || "",
       });
 
       // Push real-time notification if target is online
@@ -135,6 +136,7 @@ router.post("/:username/follow", requireAuth, async (req, res, next) => {
         type: "follow",
         sender: currentUsername,
         message: `${currentUsername} started following you.`,
+        senderAvatar: currentUser.avatar || "",
         createdAt: notification.createdAt,
         read: false,
       });
@@ -146,6 +148,40 @@ router.post("/:username/follow", requireAuth, async (req, res, next) => {
       following: !isFollowing,
       followerCount: targetUser.followers.length,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── GET /profile/:username/followers — get followers list ──────────────────
+router.get("/:username/followers", async (req, res, next) => {
+  try {
+    const { username } = req.params;
+    const user = await User.findOne({ username }).select("followers");
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    const followers = await User.find({ username: { $in: user.followers } })
+      .select("username avatar bio")
+      .lean();
+
+    res.json(followers);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── GET /profile/:username/following — get following list ──────────────────
+router.get("/:username/following", async (req, res, next) => {
+  try {
+    const { username } = req.params;
+    const user = await User.findOne({ username }).select("following");
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    const following = await User.find({ username: { $in: user.following } })
+      .select("username avatar bio")
+      .lean();
+
+    res.json(following);
   } catch (err) {
     next(err);
   }
