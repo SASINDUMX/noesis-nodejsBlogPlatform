@@ -1,9 +1,13 @@
 import { usePosts } from "../hooks";
 import Post from "../components/Post";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import { useLocation } from "react-router-dom";
 
 export default function Home({ currentUsername }) {
   const { posts, loading, refetch } = usePosts("/pub");
+  const location = useLocation();
+  const query = new URLSearchParams(location.search);
+  const highlightId = query.get("highlight");
 
   return (
     <div className="home-container">
@@ -25,6 +29,7 @@ export default function Home({ currentUsername }) {
               post={post}
               currentUsername={currentUsername}
               fetchPosts={refetch}
+              highlightId={highlightId}
             />
           ))}
         </div>
