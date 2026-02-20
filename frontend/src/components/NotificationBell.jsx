@@ -75,9 +75,23 @@ export default function NotificationBell({ notifications, unreadCount, onMarkAll
                   tabIndex={0}
                   onKeyDown={(e) => e.key === "Enter" && handleNotificationClick(n)}
                 >
-                  <span className="notif-icon">{typeIcon[n.type] || "🔔"}</span>
+                  {n.senderAvatar ? (
+                    <img src={n.senderAvatar} alt="" className="notif-avatar" />
+                  ) : (
+                    <div className="notif-avatar-placeholder">
+                      {n.sender?.charAt(0).toUpperCase() || "?"}
+                    </div>
+                  )}
                   <div className="notif-body">
-                    <p className="notif-message">{n.message}</p>
+                    <p className="notif-message">
+                      <span className="notif-icon-inline">{typeIcon[n.type] || "🔔"}</span>{" "}
+                      {n.message}
+                    </p>
+                    {n.content && (
+                      <div className="notif-content-snippet">
+                        "{n.content.length > 60 ? n.content.substring(0, 60) + "..." : n.content}"
+                      </div>
+                    )}
                     <span className="notif-time">{timeAgo(n.createdAt)}</span>
                   </div>
                   {!n.read && <span className="notif-dot" aria-hidden="true" />}
