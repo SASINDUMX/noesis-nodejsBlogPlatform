@@ -9,7 +9,7 @@ function initSocket(httpServer) {
 
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+      origin: process.env.CLIENT_ORIGIN,
       credentials: true,
     },
   });
@@ -17,9 +17,18 @@ function initSocket(httpServer) {
   io.on("connection", (socket) => {
     // Client sends their username after connecting so we can map them
     socket.on("register", (username) => {
+      // Clear any old mappings for THIS socket ID first
+      for (const [user, id] of onlineUsers.entries()) {
+        if (id === socket.id) {
+          onlineUsers.delete(user);
+        }
+      }
+
       if (username) {
         onlineUsers.set(username, socket.id);
         console.log(`[Socket] ${username} connected (${socket.id})`);
+      } else {
+        console.log(`[Socket] Unregistered socket ${socket.id}`);
       }
     });
 
@@ -29,7 +38,8 @@ function initSocket(httpServer) {
         if (id === socket.id) {
           onlineUsers.delete(username);
           console.log(`[Socket] ${username} disconnected`);
-          break;
+          // Note: we don't break because one socket ID might (accidentally) have multiple usernames
+          // in a buggy state, so we clean all.
         }
       }
     });
