@@ -1,79 +1,116 @@
 const router = require("express").Router();
+const bcrypt = require("bcrypt");
+const rateLimit = require("express-rate-limit");
 const User = require("../models/User");
 const Post = require("../models/Post");
+const requireAuth = require("../middleware/requireAuth");
+const { validateSignup, validateLogin } = require("../middleware/validate");
 
-const bcrypt = require("bcrypt");
+// ─── Auth-specific rate limiter ───────────────────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,                   // 10 attempts per window per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts. Please wait 15 minutes and try again." },
+});
 
-router.post("/signup", async (req, res) => {
+// ─── POST /auth/signup ───────────────────────────────────────────────────────
+router.post("/signup", authLimiter, validateSignup, async (req, res, next) => {
   try {
-    const salt = await bcrypt.genSalt(10);
-    const hashedPass = await bcrypt.hash(req.body.password, salt);
-    const newUser = new User({
-      username: req.body.username,
-      email: req.body.email,
-      password: hashedPass,
-    });
+    const { username, email, password } = req.body;
 
-    const user = await newUser.save();
-    res.status(200).json({
-      message: "Signup successful"
+    // Check for existing user before hashing (cheaper early exit)
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email }],
     });
+    if (existingUser) {
+      const field = existingUser.username === username ? "Username" : "Email";
+      return res.status(409).json({ error: `${field} is already taken.` });
+    }
 
+    const salt = await bcrypt.genSalt(12); // 12 rounds — stronger than default 10
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = new User({ username, email, password: hashedPassword });
+    await newUser.save();
+
+    // Auto-login after signup
+    req.session.username = username;
+
+    res.status(201).json({ message: "Signup successful", username });
   } catch (err) {
-    res.status(500).json(err);
+    next(err);
   }
 });
 
-router.post("/login", async (req, res) => {
+// ─── POST /auth/login ────────────────────────────────────────────────────────
+router.post("/login", authLimiter, validateLogin, async (req, res, next) => {
   try {
-    const user = await User.findOne({ username: req.body.username });
-    if (!user) return res.status(400).json({ error: "Wrong credentials!" });
+    const { username, password } = req.body;
 
-    const validated = await bcrypt.compare(req.body.password, user.password);
-    if (!validated) return res.status(400).json({ error: "Wrong credentials!" });
+    const user = await User.findOne({ username });
 
-    req.session.username = req.body.username;
+    // Always run bcrypt even if user not found to prevent timing attacks
+    const dummyHash = "$2b$12$invalidhashfortimingnormalization00000000000000000000000";
+    const isValid = user
+      ? await bcrypt.compare(password, user.password)
+      : await bcrypt.compare(password, dummyHash).then(() => false);
 
-    res.status(200).json({
-      message: "Login successful",
-      username: user.username
+    if (!user || !isValid) {
+      return res.status(400).json({ error: "Wrong credentials. Please try again." });
+    }
+
+    // Regenerate session on login to prevent session fixation attacks
+    req.session.regenerate((err) => {
+      if (err) return next(err);
+      req.session.username = username;
+      res.status(200).json({ message: "Login successful", username });
     });
-
   } catch (err) {
-    res.status(500).json(err);
+    next(err);
   }
 });
 
-router.get("/logout", (req, res) => {
+// ─── GET /auth/logout ────────────────────────────────────────────────────────
+router.get("/logout", requireAuth, (req, res, next) => {
   req.session.destroy((err) => {
-    if (err) return res.status(500).json(err);
-    res.json({ message: "Logged out" });
+    if (err) return next(err);
+    res.clearCookie("connect.sid");
+    res.json({ message: "Logged out successfully" });
   });
 });
 
-
-router.get("/delete", async (req, res) => {
+// ─── DELETE /auth/me — delete own account ────────────────────────────────────
+// Changed from GET /auth/delete — GET should never be destructive
+router.delete("/me", requireAuth, async (req, res, next) => {
   try {
-    const username = req.session.username;
-
+    const { username } = req.session;
 
     await Post.deleteMany({ username });
-
-
     const user = await User.findOneAndDelete({ username });
 
     if (!user) {
-      return res.status(404).send('User not found');
+      return res.status(404).json({ error: "User not found." });
     }
 
-
-    req.session.destroy();
-    res.json({ message: "User deleted" });
-
+    req.session.destroy((err) => {
+      if (err) return next(err);
+      res.clearCookie("connect.sid");
+      res.json({ message: "Account deleted successfully." });
+    });
   } catch (err) {
-    console.error("Error deleting user:", err);
-    res.status(500).json(err);
+    next(err);
   }
+});
+
+// ─── GET /auth/me — get current session user ─────────────────────────────────
+// Useful for the frontend to verify session is still alive on page load
+router.get("/me", (req, res) => {
+  if (!req.session?.username) {
+    return res.status(401).json({ error: "Not authenticated." });
+  }
+  res.json({ username: req.session.username });
 });
 
 module.exports = router;
